@@ -49,3 +49,9 @@ ON BIT_DB.feb.orderID=cust.order_id
 WHERE feb.Quantity>2
 AND length(orderid) =6
 AND orderid<>'Order ID';
+
+--What products where orded in February located in Los Angeles?
+SELECT product, sum(quantity) AS amt_sold, location
+FROM bit_db.FebSales
+WHERE location LIKE '%Los Angeles%'
+GROUP BY product
