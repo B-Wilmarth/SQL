@@ -1,34 +1,42 @@
 --Create a Brewery Database
 
-CREATE TABLE brewery (id INTEGER PRIMARY KEY, beer_type TEXT, beer_name TEXT, rating INTEGER, price INTEGER);
+CREATE TABLE brewery (id INTEGER PRIMARY KEY, beer_type TEXT, beer_name TEXT, abv TEXT, rating INTEGER, price INTEGER);
 
-INSERT INTO brewery VALUES (1, "Ale", "All's Ale That Ends Ale", 4, 5.99);
-INSERT INTO brewery VALUES(2, "IPA", "Who Do Voodoo", 3.8, 4.78);
-INSERT INTO brewery VALUES (3, "Lager", "Bockmeister", 4.2, 5.69);
-INSERT INTO brewery VALUES (4, "Witbier", "Wit or Witout You", 3.5, 4.99);
-INSERT INTO brewery VALUES (5, "Dunkel", "Slam Dunkel", 4.9, 6.50);
-INSERT INTO brewery VALUES (6, "Light Ale", "The Ligher The Brighter", 4.2, 4.99);
-INSERT INTO brewery VALUES (7, "Stout", "When in Doubt, Stout it Out", 4.1, 7.22);
-INSERT INTO brewery VALUES (8, "Port", "Hard to Port", 4, 7.00);
-INSERT INTO brewery VALUES (9, "Pilsner", "Pisswasser", 2, 3.50);
-INSERT INTO brewery VALUES (10, "Sour", "Pucker up Buttercup", 2.8, 5.20); 
-INSERT INTO brewery VALUES (11, "Marzen", "Oktoberfest", 3.7, 5.35);
-INSERT INTO brewery VALUES (12, "Pale Ale", "Pale Face", 4.0, 5.00);
-INSERT INTO brewery VALUES (13, "Irish Red Ale", "Luck of the Red", 3.7, 4.50);
-INSERT INTO brewery VALUES (14, "Hefeweizen", "All Hail the Hefe", 4.7, 4.99);
-INSERT INTO brewery VALUES (15, "Bock", "Old Reliable", 4.8, 5.99);
+INSERT INTO brewery VALUES (1, "Ale", "All's Ale That Ends Ale", 4.8, 4, 5.99);
+INSERT INTO brewery VALUES(2, "IPA", "Who Do Voodoo", 7.3, 3.8, 4.78);
+INSERT INTO brewery VALUES (3, "Lager", "Bockmeister", 4.8, 4.2, 5.69);
+INSERT INTO brewery VALUES (4, "Witbier", "Wit or Witout You", 4.5, 3.5, 4.99);
+INSERT INTO brewery VALUES (5, "Dunkel", "Slam Dunkel", 6.0, 4.9, 6.50);
+INSERT INTO brewery VALUES (6, "Light Ale", "The Ligher The Brighter", 4.2, 4.2, 4.99);
+INSERT INTO brewery VALUES (7, "Stout", "When in Doubt, Stout it Out", 5.3, 4.1, 7.22);
+INSERT INTO brewery VALUES (8, "Port", "Hard to Port", 8.0, 4, 7.00);
+INSERT INTO brewery VALUES (9, "Pilsner", "Pisswasser", 4.0, 2, 3.50);
+INSERT INTO brewery VALUES (10, "Sour", "Pucker up Buttercup", 3.8, 2.8, 5.20); 
+INSERT INTO brewery VALUES (11, "Marzen", "Oktoberfest", 4.5, 3.7, 5.35);
+INSERT INTO brewery VALUES (12, "Pale Ale", "Pale Face", 6.2, 4.0, 5.00);
+INSERT INTO brewery VALUES (13, "Irish Red Ale", "Luck of the Red", 6.0, 3.7, 4.50);
+INSERT INTO brewery VALUES (14, "Hefeweizen", "All Hail the Hefe",4.9, 4.7, 4.99);
+INSERT INTO brewery VALUES (15, "Bock", "Old Reliable", 5.1, 4.8, 5.99);
 
---display the database ordered by highest to lowest price. 
-SELECT * FROM brewery
+--display the database ordered by highest to lowest price.
+SELECT beer_name, beer_type, price 
+FROM brewery
 ORDER BY price desc; 
 
 --what is the avg price of beers rated over 4.0? 
-SELECT AVG(price)
+SELECT AVG(price) AS average_price
 FROM brewery
 WHERE rating>="4.0"; 
 
 --what are the top 5 performers in the brewery? 
-SELECT beer_name, price, rating
+SELECT beer_name, rating, price
 FROM brewery
 ORDER BY rating desc
 limit 5; 
+
+--what are the bottom 5 performers in the brewery?
+SELECT beer_name, rating, price
+FROM brewery
+WHERE rating<4
+ORDER BY rating asc
+LIMIT 5;
