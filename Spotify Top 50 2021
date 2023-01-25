@@ -43,4 +43,11 @@ AND popularity>90
 ORDER BY energy 
 LIMIT 1;
 
-
+--Who are the artists with an average popularity rating over 90?
+WITH Top_Stars AS (
+SELECT s.artist_name, avg(s.popularity) AS Avg_popularity
+FROM spotifydata s
+GROUP BY s.artist_name)
+SELECT artist_name, avg_popularity, 'TopStar' AS Tag
+FROM Top_Star
+WHERE avg_popularity>90
