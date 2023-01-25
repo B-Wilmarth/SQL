@@ -1,0 +1,46 @@
+--For this project, I downloaded my data from Kaggle.
+--Next, I created a table to insert Spotify data into.
+--I then queried my data using SQL.
+
+CREATE TABLE BIT_DB.Spotifydata (
+id integer PRIMARY KEY,
+artist_name varchar NOT NULL,
+track_name varchar NOT NULL,
+track_id varchar NOT NULL,
+popularity integer NOT NULL,
+danceability decimal(4,3) NOT NULL,
+energy decimal(4,3) NOT NULL,
+song_key integer NOT NULL,
+loudness decimal(5,3) NOT NULL,
+song_mode integer NOT NULL,
+speechiness decimal(5,4) NOT NULL,
+acousticness decimal(6,5) NOT NULL,
+instrumentalness text NOT NULL,
+liveness decimal(5,4) NOT NULL,
+valence decimal(4,3) NOT NULL,
+tempo decimal(6,3) NOT NULL,
+duration_ms integer NOT NULL,
+time_signature integer NOT NULL)
+
+--What was the most common key for a song in the top 50?
+SELECT distinct song_key,
+count(song_key) AS num_of_songs
+FROM bit_db.spotifydata
+GROUP BY song_key
+ORDER BY count(song_key) desc
+LIMIT 1;
+
+--Which artist had the shortest song in the top 50, and what was the name of the track?
+SELECT artist_name, track_name, min((duration_ms/1000))AS duration_sec
+FROM bit_db.spotifydata
+ORDER BY duration_sec;
+
+--What song was the most popular, low-energy in the top 50?
+SELECT Artist_name, track_name, popularity, energy
+FROM bit_db.Spotifydata
+WHERE energy<0.5
+AND popularity>90
+ORDER BY energy 
+LIMIT 1;
+
+
