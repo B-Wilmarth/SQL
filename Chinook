@@ -1,0 +1,56 @@
+--For this project I downloaded the SQLite sample chinook database 
+
+--What genre of music is ordered the most and how much revenue is made from them?
+SELECT g.name, count(inv_i.invoiceid) AS Tracks_Ordered, sum(inv_i.unitprice) AS 'Revenue',
+CASE 
+    WHEN sum(inv_i.unitprice) > 200 THEN 'Above Average'
+    WHEN sum(inv_i.unitprice) < 50 THEN 'Below Average'
+    ELSE'Average'
+END AS 'Earner Rank'
+FROM chinook.genres g
+INNER JOIN chinook.tracks tr
+ON g.GenreId=tr.GenreId
+INNER JOIN chinook.invoice_items inv_i    
+ON tr.TrackId=inv_i.TrackId
+GROUP BY g.genreId
+ORDER BY Tracks_Ordered desc;
+
+--How many customers exist outside of the USA and what countries are they from?
+SELECT Country, count(country) AS count
+FROM chinook.customers
+WHERE Country<>'USA'
+GROUP BY Country
+ORDER BY Count desc;
+
+--What are the top 5 countries that order the most tracks and how much revenue do they bring in?
+SELECT inv.BillingCountry, count(inv_i.quantity) AS Quantity_Ordered, inv.Total
+FROM invoices inv
+INNER JOIN invoice_items inv_i
+ON inv.invoiceid=inv_i.invoicelineid
+GROUP BY BillingCountry
+ORDER BY Quantity_Ordered desc
+LIMIT 5;
+
+--What is the revenue broken down by year?
+SELECT substr(invoicedate, 1, 4) AS Year, sum(total) AS 'Yearly Revenue'
+FROM invoices
+GROUP BY Year
+ORDER BY Year;
+
+--List the employees with the customer and invoice total with the country the customer is from
+SELECT inv.Total, cust.FirstName, cust.LastName, cust.Country, emp.FirstName, emp.LastName
+FROM invoices inv
+LEFT JOIN customers cust
+ON cust.customerid=inv.customerid
+JOIN employees emp
+ON emp.employeeid=cust.supportrepid
+ORDER BY emp.LastName,cust.country;
+
+--What are the sales support agent's total by each year?
+SELECT emp.FirstName, emp.LastName, substr(invoicedate, 1, 4) AS Year, SUM(inv.total) AS YearlySales
+FROM customers cust
+INNER JOIN employees emp
+ON cust.supportrepid=emp.employeeid
+INNER JOIN invoices inv
+ON cust.customerid=inv.customerid
+GROUP BY emp.employeeid,year;
