@@ -1,0 +1,123 @@
+/*
+What are the top 10 performing items sold? 
+What are the regions that produce the most sales?
+What are the lowest performing items sold?
+What shipping mode do our customers prefer?
+Which segment orders brings in the highest amount of sales?
+*/
+
+--What are the top 10 performing items sold? 
+SELECT Category,
+       Subcategory,
+       ProductID,
+       ProductName,
+       count(productname) AS UnitsSold,
+       SUM(Sales) AS TotalSales
+  FROM Sales
+ GROUP BY ProductName
+ ORDER BY TotalSales DESC
+ LIMIT 10;
+ 
+-- How many similar products made it into the top 10?
+SELECT Category,
+       SubCategory,
+       COUNT(SubCategory) AS UnitsSold,
+       SUM(TotalSales) AS TotalSales
+  FROM (
+           SELECT Category,
+                  Subcategory,
+                  ProductID,
+                  ProductName,
+                  count(productname) AS UnitsSold,
+                  SUM(Sales) AS TotalSales
+             FROM Sales
+            GROUP BY ProductName
+            ORDER BY TotalSales DESC
+            LIMIT 10
+       )
+ GROUP BY Subcategory
+ ORDER BY TotalSales DESC;
+ 
+-- How many types of binders are sold?
+SELECT Category,
+       SubCategory,
+       COUNT(SubCategory) AS NumOfProduct
+  FROM Sales
+ WHERE subcategory = 'Binders';
+ 
+ 
+ 
+-- What are the regions that produce the most sales?
+SELECT Region,
+       SUM(Sales) AS TotalSales
+  FROM Sales
+ GROUP BY Region
+ ORDER BY Region DESC;
+ 
+--What are the region sales broken down by segment?
+SELECT Region,
+       Segment,
+       SUM(Sales) AS TotalSales
+  FROM Sales
+ GROUP BY Region,
+          Segment
+ ORDER BY TotalSales DESC;
+ 
+--Which regions performed the highest per year?
+SELECT Region,
+       SUM(Sales) AS TotalSales,
+       SUBSTR(orderdate, LENGTH(orderdate) - 3, 4) AS Year
+  FROM Sales
+ GROUP BY Year
+ ORDER BY Year DESC;;
+
+
+
+--What are the lowest performing items sold?
+SELECT *
+FROM(
+SELECT
+Category,
+       Subcategory,
+       ProductID,
+       ProductName,
+       count(productname) AS UnitsSold,
+       SUM(Sales) AS TotalSales
+  FROM Sales
+ GROUP BY ProductName
+ ORDER BY TotalSales ASC
+)
+ WHERE UnitsSold > 10
+ ORDER BY UnitsSold ASC
+ LIMIT 10;
+
+
+
+--What shipping mode do our customers prefer?
+SELECT ShipMode,
+       count(shipmode) AS NumOfOrders
+  FROM Sales
+ GROUP BY shipmode
+ ORDER BY NumOfOrders DESC;
+
+
+
+--Which segment orders brings in the highest amount of sales?
+SELECT Segment,
+       SUM(Sales) AS TotalSales
+  FROM Sales
+ GROUP BY Segment;
+
+--Who are our top 100 consumers that contribute the most amount of money to our sales revenue?
+SELECT CustomerID,
+       CustomerName,
+       Segment,
+       State,
+       PostalCode,
+       COUNT(productname) AS NumOfProducts,
+       SUM(Sales) AS TotalSales
+  FROM sales
+  WHERE Segment = 'Consumer'
+ GROUP BY Customername
+ ORDER BY TotalSales DESC
+ LIMIT 100;
