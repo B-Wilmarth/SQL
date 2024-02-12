@@ -1,123 +1,220 @@
-/*
-What are the top 10 performing items sold? 
-What are the regions that produce the most sales?
-What are the lowest performing items sold?
-What shipping mode do our customers prefer?
-Which segment orders brings in the highest amount of sales?
-*/
+--Cleaning the data first to find any null rows and removing them
+SELECT * 
+FROM orders
+WHERE region IS NULL;
 
---What are the top 10 performing items sold? 
-SELECT Category,
-       Subcategory,
-       ProductID,
-       ProductName,
-       count(productname) AS UnitsSold,
-       SUM(Sales) AS TotalSales
-  FROM Sales
- GROUP BY ProductName
- ORDER BY TotalSales DESC
+--Over 800 rows found with multiple null columns. Those rows will be removed from the dataset
+DELETE FROM orders WHERE region IS NULL OR trim(region) = '';
+
+
+/*SALES PERFORMANCE*/
+
+
+--Total and average sales for each category and sub-category from the previous year
+SELECT category,
+       subcat,
+       COUNT(order_id) AS orders,
+       ROUND(AVG(sales),2) AS avg_sale_per_order,
+       ROUND(SUM(sales),2) AS total_sales
+  FROM orders
+  WHERE order_year = '2022'
+ GROUP BY category,
+          subcat;
+
+--Comparing the historic sales performance across different regions
+SELECT region,
+       subcat,
+       SUM(quantity) AS units_sold,
+       ROUND(SUM(sales), 2) AS total_sales
+  FROM orders
+ GROUP BY region,
+          subcat
+ ORDER BY subcat, total_sales DESC;
+
+--Segments by historic sales numbers
+SELECT segment,
+       ROUND(SUM(sales), 2) AS total_sales
+  FROM orders
+ GROUP BY segment
+ ORDER BY segment,
+          total_sales DESC;
+
+--Customer segments based on their purchasing behavior per quarter from the previous year
+SELECT segment,
+       COUNT(order_id) AS orders,
+       ROUND(SUM(CASE WHEN order_quarter = 'q1' THEN sales ELSE 0 END),2) AS Q1,
+       ROUND(SUM(CASE WHEN order_quarter = 'q2' THEN sales ELSE 0 END),2) AS Q2,
+       ROUND(SUM(CASE WHEN order_quarter = 'q3' THEN sales ELSE 0 END),2) AS Q3,
+       ROUND(SUM(CASE WHEN order_quarter = 'q4' THEN sales ELSE 0 END),2) AS Q4,
+       ROUND(SUM(sales), 2) AS total_sales
+  FROM orders
+  WHERE order_year = '2022'
+ GROUP BY segment
+ ORDER BY total_sales DESC;
+
+
+/*CUSTOMER RETENTION*/
+
+
+--Identifying the most valuable customers and the least valuable customers from the previous year
+SELECT DENSE_RANK() OVER (ORDER BY ROUND(SUM(sales), 2) DESC) AS rank,
+       customer_name AS customer,
+       segment,
+       COUNT(order_id) AS orders_placed,
+       ROUND(SUM(sales), 2) AS total_sales
+  FROM orders
+  WHERE order_year = "2022"
+ GROUP BY customer,
+          segment, order_year
+ ORDER BY total_sales DESC
  LIMIT 10;
  
--- How many similar products made it into the top 10?
-SELECT Category,
-       SubCategory,
-       COUNT(SubCategory) AS UnitsSold,
-       SUM(TotalSales) AS TotalSales
-  FROM (
-           SELECT Category,
-                  Subcategory,
-                  ProductID,
-                  ProductName,
-                  count(productname) AS UnitsSold,
-                  SUM(Sales) AS TotalSales
-             FROM Sales
-            GROUP BY ProductName
-            ORDER BY TotalSales DESC
-            LIMIT 10
-       )
- GROUP BY Subcategory
- ORDER BY TotalSales DESC;
- 
--- How many types of binders are sold?
-SELECT Category,
-       SubCategory,
-       COUNT(SubCategory) AS NumOfProduct
-  FROM Sales
- WHERE subcategory = 'Binders';
- 
- 
- 
--- What are the regions that produce the most sales?
-SELECT Region,
-       SUM(Sales) AS TotalSales
-  FROM Sales
- GROUP BY Region
- ORDER BY Region DESC;
- 
---What are the region sales broken down by segment?
-SELECT Region,
-       Segment,
-       SUM(Sales) AS TotalSales
-  FROM Sales
- GROUP BY Region,
-          Segment
- ORDER BY TotalSales DESC;
- 
---Which regions performed the highest per year?
-SELECT Region,
-       SUM(Sales) AS TotalSales,
-       SUBSTR(orderdate, LENGTH(orderdate) - 3, 4) AS Year
-  FROM Sales
- GROUP BY Year
- ORDER BY Year DESC;;
+--Least valueable customers from the previous year
+SELECT DENSE_RANK() OVER (ORDER BY ROUND(SUM(sales), 2) DESC) AS rank,
+       customer_name AS customer,
+       segment,
+       COUNT(order_id) AS orders_placed,
+       ROUND(SUM(sales), 2) AS total_sales
+  FROM orders
+  WHERE order_year = "2022"
+ GROUP BY customer,
+          segment, order_year
+ ORDER BY total_sales ASC
+ LIMIT 10;
 
+--Identifying the top 10 customers from the consumer segment, which has the highest number of sales
+SELECT DENSE_RANK() OVER (ORDER BY ROUND(SUM(sales), 2) DESC) AS rank,
+       customer_name AS customer,
+       segment,
+       COUNT(order_id) AS orders_placed,
+       ROUND(SUM(sales), 2) AS total_sales
+  FROM orders
+  WHERE segment = "Consumer"
+ GROUP BY customer,
+          segment, order_year
+ ORDER BY total_sales DESC
+ LIMIT 10;
 
+--Investigating the order history of the top customer to see where the sales numbers are comming from
+SELECT order_year AS year,
+       ship_mode,
+       customer_name AS customer,
+       category,
+       subcat,
+       product_name AS product,
+       sales,
+       quantity,
+       discount
+  FROM orders
+ WHERE customer = "Raymond Buch"
+ ORDER BY order_year DESC;
 
---What are the lowest performing items sold?
-SELECT *
-FROM(
-SELECT
-Category,
-       Subcategory,
-       ProductID,
-       ProductName,
-       count(productname) AS UnitsSold,
-       SUM(Sales) AS TotalSales
-  FROM Sales
- GROUP BY ProductName
- ORDER BY TotalSales ASC
+/*The majority of sales made from Raymond Buch came after purchasing 4 copiers, this customer is unlikely to order more for some time.
+The next step is to identify the top 10 most ordered product types that would bring the most repeat business*/
+SELECT DENSE_RANK() OVER (ORDER BY ROUND(SUM(sales), 2) DESC) AS sales_rank,
+       subcat,
+       SUM(quantity) AS total_ordered,
+       ROUND(SUM(sales), 2) AS total_sales
+  FROM orders
+ GROUP BY subcat
+ ORDER BY total_ordered DESC
+ LIMIT 10;
+
+/*Now that the top 10 product types are identified now we can find the customers that have placed the most orders of this
+type as well as their order history from the previous year*/
+WITH CTE AS (
+    SELECT 
+        RANK() OVER (ORDER BY SUM(quantity) DESC) AS order_rank,
+        subcat,
+        order_year,
+        SUM(quantity) AS total_ordered,
+        ROUND(SUM(sales), 2) AS total_sales
+    FROM 
+        orders
+        WHERE order_year = '2022'
+    GROUP BY 
+        subcat,
+        order_year
+        LIMIT 10
 )
- WHERE UnitsSold > 10
- ORDER BY UnitsSold ASC
- LIMIT 10;
+SELECT 
+    customer_name AS customer,
+    SUM(quantity) AS orders,
+    ROUND(SUM(sales), 2) AS total_sales
+FROM 
+    orders
+JOIN 
+    CTE ON CTE.subcat = orders.subcat AND CTE.order_year = orders.order_year
+GROUP BY 
+    customer_name
+ORDER BY 
+    total_sales DESC
+    LIMIT 10;
 
 
-
---What shipping mode do our customers prefer?
-SELECT ShipMode,
-       count(shipmode) AS NumOfOrders
-  FROM Sales
- GROUP BY shipmode
- ORDER BY NumOfOrders DESC;
+/*RETURNS*/
 
 
+--Analizing the areas that have the highest return rate and lost revenue from the previous year
+SELECT region,
+       state_province,
+       COUNT(DISTINCT r.order_id) AS returned,
+       COUNT(DISTINCT o.order_id) AS orders,
+       ROUND(CAST (COUNT(DISTINCT CASE WHEN r.order_id IS NOT NULL THEN o.order_id END) AS FLOAT) / COUNT(DISTINCT o.order_id) * 100, 2) AS return_rate,
+       ROUND(SUM(CASE WHEN r.order_id IS NOT NULL THEN o.sales END), 2) AS revenue_lost
+  FROM orders o
+       LEFT JOIN
+       returns r ON o.order_id = r.order_id
+ WHERE order_year = '2022'
+ GROUP BY state_province
+ ORDER BY returned DESC;
 
---Which segment orders brings in the highest amount of sales?
-SELECT Segment,
-       SUM(Sales) AS TotalSales
-  FROM Sales
- GROUP BY Segment;
+--Preferred shipping modes
+SELECT ship_mode, COUNT(ship_mode) AS orders
+FROM orders
+WHERE order_year = '2022'
+GROUP BY ship_mode
+ORDER BY orders DESC;
 
---Who are our top 100 consumers that contribute the most amount of money to our sales revenue?
-SELECT CustomerID,
-       CustomerName,
-       Segment,
-       State,
-       PostalCode,
-       COUNT(productname) AS NumOfProducts,
-       SUM(Sales) AS TotalSales
-  FROM sales
-  WHERE Segment = 'Consumer'
- GROUP BY Customername
- ORDER BY TotalSales DESC
- LIMIT 100;
+--Orders broken down by shipping method and their total revenue from the previous year
+SELECT subcat, 
+COUNT(DISTINCT CASE WHEN ship_mode = 'Standard Class' THEN order_id ELSE NULL END) AS 'standard',
+COUNT(DISTINCT CASE WHEN ship_mode = 'Second Class' THEN order_id ELSE NULL END) AS 'second',
+COUNT(DISTINCT CASE WHEN ship_mode = 'First Class' THEN order_id ELSE NULL END) AS 'first',
+COUNT(DISTINCT CASE WHEN ship_mode = 'Same Day' THEN order_id ELSE NULL END) AS 'same',
+COUNT(DISTINCT order_id) AS total_ship,
+ROUND(SUM(sales),2) AS total_sales
+FROM orders
+WHERE order_year = '2022'
+GROUP BY subcat
+ORDER BY total_sales DESC;
+
+--Return rate from the previous year per ship mode
+SELECT 
+    o.ship_mode,
+    COUNT(DISTINCT o.order_id) AS orders_placed,
+    COUNT(DISTINCT CASE WHEN r.order_id IS NOT NULL THEN o.order_id END) AS orders_returned,
+    ROUND(CAST(COUNT(DISTINCT CASE WHEN r.order_id IS NOT NULL THEN o.order_id END) AS FLOAT) / COUNT(DISTINCT o.order_id) * 100, 2) AS return_rate
+FROM 
+    orders o
+LEFT JOIN 
+    returns r ON o.order_id = r.order_id
+    WHERE o.order_year = '2022'
+GROUP BY 
+    o.ship_mode
+ORDER BY 
+return_rate DESC;
+
+--Taking a more granualar look at the return rate from the previous year
+SELECT o.subcat,
+       COUNT(DISTINCT CASE WHEN o.ship_mode = 'Standard Class' THEN r.order_id END) AS standard,
+       COUNT(DISTINCT CASE WHEN o.ship_mode = 'Second Class' THEN r.order_id END) AS second,
+       COUNT(DISTINCT CASE WHEN o.ship_mode = 'First Class' THEN r.order_id END) AS [first],
+       COUNT(DISTINCT CASE WHEN o.ship_mode = 'Same Day' THEN r.order_id END) AS same,
+       ROUND(CAST (COUNT(DISTINCT CASE WHEN r.order_id IS NOT NULL THEN o.order_id END) AS FLOAT) / COUNT(DISTINCT o.order_id) * 100, 2) AS return_rate
+  FROM orders o
+       LEFT JOIN
+       returns r ON o.order_id = r.order_id
+       WHERE order_year = '2022'
+ GROUP BY subcat
+ ORDER BY return_rate DESC;
